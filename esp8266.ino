@@ -1,6 +1,8 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <UniversalTelegramBot.h>
+#include <NTPClient.h>
+#include <WiFiUdp.h>
 
 const char* ssid = "4ipsoedbl";
 const char* password = "ZUqzQ9YeZymk";
@@ -13,6 +15,15 @@ const int MAX_AUTH_USERS = 5; // Макс. количество авториз. 
 
 WiFiClientSecure client;
 UniversalTelegramBot bot(bot_token, client);
+
+WiFiUDP ntpUDP;
+NTPClient timeClient(ntpUDP);
+
+String formattedDate;
+String dayStamp;
+String timeStamp;
+
+unsigned long mTime = 0;
 
 String authorizedUsers[MAX_AUTH_USERS]; // Массив для хранения авторизованных Chat ID
 int userCount = 0;
@@ -161,6 +172,15 @@ int convertDate(String str){
   }
   return 0;
 }
+
+int convertDate(int day, int month, int year){
+  int months[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+  int yday = months[month - 1];
+  if (month > 2 && (year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)))
+    yday++;
+  return  day + yday + (year-2000)*365 + (year-1999)/4 - (year-2001)/100 + (year+1701)/400;
+}
+
 int convertTime(String str){
   int hour, minute;
   if (sscanf(str.c_str(),"%d:%d",&hour,&minute) == 2)
@@ -168,6 +188,20 @@ int convertTime(String str){
     return hour * 60 + minute;
   }
   return 0;
+}
+
+void sendingTime(){
+  timeClient.update();
+  Serial.write('t');
+  int hh = timeClient.getHours() + 5;
+  int mm = timeClient.getMinutes();
+  sendShort(hh * 60 + mm);
+  time_t epochTime = timeClient.getEpochTime();
+  struct tm *ptm = gmtime ((time_t *)&epochTime);
+  int day = ptm->tm_mday;
+  int month = ptm->tm_mon+1;
+  int year = ptm->tm_year+1900;
+  sendShort(convertDate(day, month, year));
 }
 
 void setup() {
@@ -179,9 +213,16 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) delay(500);
   
   client.setInsecure();
+
+  timeClient.begin();
 }
 
 void loop() {
+  unsigned long miTime = millis();
+  if (miTime - mTime > 60000) {
+    mTime = miTime;
+    sendingTime();
+  }
   int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
   while(numNewMessages) {
     handleNewMessages(numNewMessages);
