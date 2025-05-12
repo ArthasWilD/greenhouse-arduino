@@ -183,6 +183,10 @@ void handleSerial() {
     configureSegment(segment - 1, readShort(), readShort(), readShort(), readShort());
     return;
   }
+  if(command == 't') {
+    currentDates = readShort();
+    currentTimes = readShort();
+  }
 }
 
 void setup() {
