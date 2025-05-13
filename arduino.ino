@@ -10,17 +10,6 @@
 
 //[Year, Month, Day, Hour, Minute]
 
-struct Date {
-  short Year = 0;
-  short Month = 0;
-  short Day = 0;
-};
-
-struct Time {
-  short Hour = 0;
-  short Minute = 0;
-};
-
 CRGB growthColors[] = {
   CRGB::Fuchsia, 
   CRGB::Fuchsia, 
@@ -54,22 +43,12 @@ CRGB preleds[NUM_LEDS];
 short currentDates = 0;
 short currentTimes = 0;
 
+bool simulation = false;
+
 SoftwareSerial mySerial(6,7);
 
 short readShort() {
   return mySerial.read() * 256 + mySerial.read();
-}
-
-short convertTime(struct Time time){
-  return time.Hour * 60 + time.Minute;
-}
-
-short convertDate(struct Date date){
-  short months[12] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
-  short yday = months[date.Month - 1];
-  if (date.Month > 2 && (date.Year % 4 == 0 && (date.Year % 100 != 0 || date.Year % 400 == 0)))
-    yday++;
-  return  date.Day + yday + (date.Year-2000)*365 + (date.Year-1999)/4 - (date.Year-2001)/100 + (date.Year+1701)/400;
 }
 
 bool checkTime(short currentTime, short segment) {
@@ -184,8 +163,18 @@ void handleSerial() {
     return;
   }
   if(command == 't') {
+    if(!simulation){
     currentDates = readShort();
     currentTimes = readShort();
+    }
+    else
+    {
+      readShort();
+      readShort();
+    }
+  }
+  if(command == 's') {
+    simulation = readShort();
   }
 }
 
@@ -212,8 +201,16 @@ void setup() {
 
 void loop() {
   handleSerial();
+  if(simulation){
+    currentTimes += 6;
+    if(currentTimes >= 1440) {
+      currentTimes -= 1440;
+      currentDates++;
+    }
+  }
   handlePreLEDs(currentDates);
   handleLEDs(currentTimes);
+  delay(100);
   /*currentTimes += 60;
   if(currentTimes == 1440) {
     currentTimes = 0;
