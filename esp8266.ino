@@ -6,7 +6,7 @@
 
 const char* ssid = "";
 const char* password = "";
-const char* bot_token = ";
+const char* bot_token = "";
 
 // Настройки безопасности
 const String AUTH_PASSWORD = "1234"; // Ваш пароль
