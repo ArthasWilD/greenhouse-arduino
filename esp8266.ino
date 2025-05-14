@@ -4,13 +4,13 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
-const char* ssid = "4ipsoedbl";
-const char* password = "ZUqzQ9YeZymk";
-const char* bot_token = "7972616348:AAGuRwi63Ib78NT0xPMhqA2rMgbGfvdz8iQ";
+const char* ssid = "";
+const char* password = "";
+const char* bot_token = ";
 
 // Настройки безопасности
 const String AUTH_PASSWORD = "1234"; // Ваш пароль
-const String ALLOWED_CHAT_ID = "1352529172"; // Ваш Chat ID
+const String ALLOWED_CHAT_ID = ""; // Ваш Chat ID
 const int MAX_AUTH_USERS = 5; // Макс. количество авториз. пользователей
 
 WiFiClientSecure client;
