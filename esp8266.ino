@@ -51,6 +51,11 @@ String keyboardGryadka = "[["
   "{ \"text\": \"Все\", \"callback_data\": \"5\" }"
 "]]";
 
+String keyboardTest = "[["
+  "{ \"text\": \"Включить\", \"callback_data\": \"1\" },"
+  "{ \"text\": \"Выключить\", \"callback_data\": \"0\" }"
+"]]";
+
 struct Settings settings;
 
 void handleNewMessages(int numNewMessages) {
@@ -91,17 +96,26 @@ void handleNewMessages(int numNewMessages) {
       String helpText = "Доступные команды:\n"
                        "/auth - Авторизация\n"
                        "/logout - Деавторизация\n"
-                       "/growth_period - Задать сроки роста";
+                       "/growth_period - Задать сроки роста\n"
+                       "/runTest - Запустить демонстрацию работы теплицы\n"
+                       "/stopTest - Остановить демонстрацию работы теплицы";
       bot.sendMessage(chat_id, helpText);
     }
 
+    else if (text == "/runTest") {
+      Serial.write("s");
+      sendShort(1);
+    }
+    else if (text == "/stopTest") {
+      Serial.write("s");
+      sendShort(0);
+    }
 
     else if (text == "/growth_period") {
       String welcome = "Управление теплицей:\n";
       welcome += "Для каких грядок настроить освещение? ⤵️";
       bot.sendMessageWithInlineKeyboard(chat_id, welcome, "", keyboardGryadka);
       isAwaitingGryadka = true;
-
     }
     else if(isAwaitingGryadka){
       settings.gryadka = atoi(text.c_str());
@@ -193,7 +207,7 @@ int convertTime(String str){
 void sendingTime(){
   timeClient.update();
   Serial.write('t');
-  int hh = timeClient.getHours() + 5;
+  int hh = timeClient.getHours();
   int mm = timeClient.getMinutes();
   sendShort(hh * 60 + mm);
   time_t epochTime = timeClient.getEpochTime();
