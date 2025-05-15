@@ -4,20 +4,20 @@
 #include <NTPClient.h>
 #include <WiFiUdp.h>
 
-const char* ssid = "";
-const char* password = "";
-const char* bot_token = "";
+const char* ssid = "***"; // Логин от WiFi
+const char* password = "***"; // Пароль от WiFi
+const char* bot_token = "***"; // Токен бота
 
 // Настройки безопасности
 const String AUTH_PASSWORD = "1234"; // Ваш пароль
-const String ALLOWED_CHAT_ID = ""; // Ваш Chat ID
+const String ALLOWED_CHAT_ID = "***"; // Ваш Chat ID
 const int MAX_AUTH_USERS = 5; // Макс. количество авториз. пользователей
 
 WiFiClientSecure client;
 UniversalTelegramBot bot(bot_token, client);
 
 WiFiUDP ntpUDP;
-NTPClient timeClient(ntpUDP);
+NTPClient timeClient(ntpUDP, "pool.ntp.org", 18000);
 
 String formattedDate;
 String dayStamp;
@@ -28,6 +28,7 @@ unsigned long mTime = 0;
 String authorizedUsers[MAX_AUTH_USERS]; // Массив для хранения авторизованных Chat ID
 int userCount = 0;
 
+bool isAwaiting = false;
 bool isAwaitingGryadka = false;
 bool isAwaitingStartDate = false;
 bool isAwaitingEndDate = false;
@@ -42,13 +43,20 @@ struct Settings {
   int endTime;
 };
 
-// Клавиатура управления
+// Клавиатуры управления
 String keyboardGryadka = "[["
   "{ \"text\": \"1\", \"callback_data\": \"1\" },"
   "{ \"text\": \"2\", \"callback_data\": \"2\" },"
   "{ \"text\": \"3\", \"callback_data\": \"3\" },"
   "{ \"text\": \"4\", \"callback_data\": \"4\" },"
   "{ \"text\": \"Все\", \"callback_data\": \"5\" }"
+"]]";
+
+String numGryadka = "[["
+  "{ \"text\": \"1\", \"callback_data\": \"1\" },"
+  "{ \"text\": \"2\", \"callback_data\": \"2\" },"
+  "{ \"text\": \"3\", \"callback_data\": \"3\" },"
+  "{ \"text\": \"4\", \"callback_data\": \"4\" }"
 "]]";
 
 String keyboardTest = "[["
@@ -97,6 +105,7 @@ void handleNewMessages(int numNewMessages) {
                        "/auth - Авторизация\n"
                        "/logout - Деавторизация\n"
                        "/growth_period - Задать сроки роста\n"
+                       "/takeInfo - Получить информацию по теплице\n"
                        "/runTest - Запустить демонстрацию работы теплицы\n"
                        "/stopTest - Остановить демонстрацию работы теплицы";
       bot.sendMessage(chat_id, helpText);
@@ -111,9 +120,41 @@ void handleNewMessages(int numNewMessages) {
       sendShort(0);
     }
 
+    else if (text == "/takeInfo") {
+      String welcome = "Укажите, по какой грядке необходима информация:⤵️";
+      bot.sendMessageWithInlineKeyboard(chat_id, welcome, "", numGryadka);
+      isAwaiting = true;
+    }
+    else if(isAwaiting){
+      Serial.write("r");
+      Serial.write(atoi(text.c_str()));
+      unsigned long start = millis();
+      int red = 255, green = 165, blue = 0;
+
+      delay(200);
+      while (millis() - start < 5000) {
+        if (Serial.available() >= 3) {
+          blue = Serial.read();
+          green = Serial.read();
+          red = Serial.read();
+          break;
+        }
+      }
+      //bot.sendMessage(chat_id, String(red));
+      //bot.sendMessage(chat_id, String(green));
+      //bot.sendMessage(chat_id, String(blue));
+      if (red == -1 || green == -1 || blue == -1) {
+        bot.sendMessage(chat_id, "❌ Данные не получены");
+      } else {
+        bot.sendMessage(chat_id, generateColorLink(red, green, blue));
+      }
+      isAwaiting = false;
+    }
+
     else if (text == "/growth_period") {
       String welcome = "Управление теплицей:\n";
       welcome += "Для каких грядок настроить освещение? ⤵️";
+      sendingTime();
       bot.sendMessageWithInlineKeyboard(chat_id, welcome, "", keyboardGryadka);
       isAwaitingGryadka = true;
     }
@@ -125,28 +166,24 @@ void handleNewMessages(int numNewMessages) {
     }
     else if(isAwaitingStartDate){
       settings.startDate = convertDate(text);
-      bot.sendMessage(chat_id, (String)settings.startDate);
       bot.sendMessage(chat_id, "Укажите приблизительную дату созревания в формате дд.мм.гггг");
       isAwaitingStartDate = false;
       isAwaitingEndDate = true;
     }
     else if(isAwaitingEndDate){
       settings.endDate = convertDate(text);
-      bot.sendMessage(chat_id, (String)settings.endDate);
       bot.sendMessage(chat_id, "Укажите время начала светового дня в формате чч:мм");
       isAwaitingEndDate = false;
       isAwaitingStartTime = true;
     }
     else if(isAwaitingStartTime){
       settings.startTime = convertTime(text);
-      bot.sendMessage(chat_id, (String)settings.startTime);
       bot.sendMessage(chat_id, "Укажите время конца светового дня в формате чч:мм");
       isAwaitingStartTime = false;
       isAwaitingEndTime = true;
     }
     else if(isAwaitingEndTime){
       settings.endTime = convertTime(text);
-      bot.sendMessage(chat_id, (String)settings.endTime);
       
       Serial.write('c');
       Serial.write(settings.gryadka);
@@ -167,6 +204,21 @@ void handleNewMessages(int numNewMessages) {
       }
     }
   }
+}
+
+String generateColorLink(int r, int g, int b) {
+  String url = "https://www.colorhexa.com/" + 
+              getTwoDigitNumber(r) + 
+              getTwoDigitNumber(g) + 
+              getTwoDigitNumber(b) + ".png";
+  return "В данный момент, цвет ламп на данной грядке такой: " + url;
+}
+
+String getTwoDigitNumber(int i){
+  if (i < 16) {
+    return "0" + String(i, HEX);
+  }
+  return String(i, HEX);
 }
 
 void sendShort (int num){
@@ -209,13 +261,13 @@ void sendingTime(){
   Serial.write('t');
   int hh = timeClient.getHours();
   int mm = timeClient.getMinutes();
-  sendShort(hh * 60 + mm);
   time_t epochTime = timeClient.getEpochTime();
   struct tm *ptm = gmtime ((time_t *)&epochTime);
   int day = ptm->tm_mday;
   int month = ptm->tm_mon+1;
   int year = ptm->tm_year+1900;
   sendShort(convertDate(day, month, year));
+  sendShort(hh * 60 + mm);
 }
 
 void setup() {
