@@ -11,22 +11,26 @@
 //[Year, Month, Day, Hour, Minute]
 
 CRGB growthColors[] = {
-  CRGB::Fuchsia, 
-  CRGB::Fuchsia, 
-  CRGB::Fuchsia, 
-  CRGB::Fuchsia, 
-  CRGB::White, 
-  CRGB::White, 
-  CRGB::White, 
-  CRGB::White, 
-  CRGB::White, 
-  CRGB::White, 
-  CRGB::White, 
-  CRGB::White, 
-  CRGB::Orange, 
-  CRGB::Orange, 
-  CRGB::Orange, 
-  CRGB::Orange
+  CRGB(148, 0, 211), 
+  CRGB(148, 0, 211), 
+  CRGB(148, 0, 211), 
+  CRGB(201, 127, 233), 
+  CRGB(255, 255, 255), 
+  CRGB(255, 255, 255), 
+  CRGB(255, 255, 255), 
+  CRGB(255, 255, 255), 
+  CRGB(255, 255, 255), 
+  CRGB(255, 255, 255), 
+  CRGB(255, 210, 127), 
+  CRGB(255, 165, 0), 
+  CRGB(255, 165, 0), 
+  CRGB(255, 165, 0), 
+  CRGB(255, 165, 0), 
+  CRGB(255, 165, 0),
+  CRGB(255, 83, 0), 
+  CRGB(255, 0, 0), 
+  CRGB(255, 0, 0), 
+  CRGB(255, 0, 0)
 };
 
 short startDate[SEGMENTS] = {0, 0, 0, 0};
@@ -90,8 +94,8 @@ short getDate(short segment, short currentDate) {
     //Serial.print("Zero division");
     return 0;
   }
-  short result = ((currentDate - startDate[segment]) * 15 / (endDate[segment] - startDate[segment]));
-  if(result > 15 || result < 0) {
+  short result = ((currentDate - startDate[segment]) * 20 / (endDate[segment] - startDate[segment]));
+  if(result > 20 || result < 0) {
     //Serial.print("Result out of bounds");
     return 0;
   }
@@ -166,6 +170,8 @@ void handleSerial() {
     if(!simulation){
     currentDates = readShort();
     currentTimes = readShort();
+    Serial.print("Received Date: ");
+    Serial.println(currentDates);
     }
     else
     {
@@ -175,6 +181,12 @@ void handleSerial() {
   }
   if(command == 's') {
     simulation = readShort();
+  }
+  if(command == 'r') {
+    int segment = mySerial.read() - 1;
+    mySerial.write(leds[segment * LEDS_SEGMENT].b);
+    mySerial.write(leds[segment * LEDS_SEGMENT].g);
+    mySerial.write(leds[segment * LEDS_SEGMENT].r);
   }
 }
 
@@ -202,10 +214,11 @@ void setup() {
 void loop() {
   handleSerial();
   if(simulation){
-    currentTimes += 6;
+    currentTimes += 60;
     if(currentTimes >= 1440) {
       currentTimes -= 1440;
       currentDates++;
+      Serial.println(currentDates);
     }
   }
   handlePreLEDs(currentDates);
