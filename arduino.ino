@@ -69,17 +69,17 @@ bool checkTime(short currentTime, short segment) {
 }
 
 bool checkLight() {
-  //return analogRead(LIGHT_PIN) > 58;
-  return true;
+  int light = analogRead(LIGHT_PIN);
+  //Serial.println(light);
+  return analogRead(LIGHT_PIN) > 54;
+  //return true;
 }
 
 void handleLEDs(short currentTime) {
   for(int s = 0; s < SEGMENTS; s++) {
-    if(checkTime(currentTime, s) && checkLight && activeSegments[s]){
+    if(checkTime(currentTime, s) && checkLight() && activeSegments[s]){
       for(int i = 0; i < LEDS_SEGMENT; i++)
         leds[i + s * LEDS_SEGMENT] = preleds[i + s * LEDS_SEGMENT];
-      //Serial.print("Segment is active ");
-      //Serial.println(s);
     }
     else {
       for(int i = 0; i < LEDS_SEGMENT; i++)
@@ -170,10 +170,6 @@ void handleSerial() {
     if(!simulation){
     currentDates = readShort();
     currentTimes = readShort();
-    //Serial.print("Received Date: ");
-    //Serial.println(currentDates);
-    //Serial.print("Received Time: ");
-    //Serial.println(currentTimes);
     }
     else
     {
@@ -189,12 +185,6 @@ void handleSerial() {
     mySerial.write(leds[segment * LEDS_SEGMENT].b);
     mySerial.write(leds[segment * LEDS_SEGMENT].g);
     mySerial.write(leds[segment * LEDS_SEGMENT].r);
-    //Serial.println(segment);
-    //Serial.print(leds[segment * LEDS_SEGMENT].r);
-    //Serial.print(" ");
-    //Serial.print(leds[segment * LEDS_SEGMENT].g);
-    //Serial.print(" ");
-    //Serial.println(leds[segment * LEDS_SEGMENT].b);
   }
 }
 
