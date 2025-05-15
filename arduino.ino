@@ -69,8 +69,8 @@ bool checkTime(short currentTime, short segment) {
 }
 
 bool checkLight() {
-  return analogRead(LIGHT_PIN) > 58;
-  //return true;
+  //return analogRead(LIGHT_PIN) > 58;
+  return true;
 }
 
 void handleLEDs(short currentTime) {
@@ -170,8 +170,10 @@ void handleSerial() {
     if(!simulation){
     currentDates = readShort();
     currentTimes = readShort();
-    Serial.print("Received Date: ");
-    Serial.println(currentDates);
+    //Serial.print("Received Date: ");
+    //Serial.println(currentDates);
+    //Serial.print("Received Time: ");
+    //Serial.println(currentTimes);
     }
     else
     {
@@ -187,6 +189,12 @@ void handleSerial() {
     mySerial.write(leds[segment * LEDS_SEGMENT].b);
     mySerial.write(leds[segment * LEDS_SEGMENT].g);
     mySerial.write(leds[segment * LEDS_SEGMENT].r);
+    //Serial.println(segment);
+    //Serial.print(leds[segment * LEDS_SEGMENT].r);
+    //Serial.print(" ");
+    //Serial.print(leds[segment * LEDS_SEGMENT].g);
+    //Serial.print(" ");
+    //Serial.println(leds[segment * LEDS_SEGMENT].b);
   }
 }
 
@@ -198,9 +206,13 @@ void setup() {
 
   FastLED.addLeds<WS2812, LEDS_PIN, GRB>(leds, NUM_LEDS);
 
+  delay(2000);
+
   analogWrite(LIGHT_PIN, LOW);
   Serial.begin(115200);  // Скорость для монитора порта
   mySerial.begin(115200); // Скорость для ESP (через аппаратный UART)
+
+  simulation = false;
 
   //startTime[0] = 0;
   //endTime[0] = 720;
@@ -218,7 +230,7 @@ void loop() {
     if(currentTimes >= 1440) {
       currentTimes -= 1440;
       currentDates++;
-      Serial.println(currentDates);
+      //Serial.println(currentDates);
     }
   }
   handlePreLEDs(currentDates);
